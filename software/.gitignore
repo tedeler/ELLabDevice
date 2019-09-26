@@ -1,8 +1,6 @@
 /.metadata/
 # Prerequisites
 *.d
-software/LabConsole/Release/*
-
 # Compiled Object files
 *.slo
 *.lo
