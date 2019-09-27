@@ -64,6 +64,12 @@ LaborLogAmplifier::LaborLogAmplifier(int16_t timems) :
 	tft.setTextSize(2);
 	tft.println("dB");
 
+
+	tft.setCursor(350, 250);
+	tft.setTextColor(YELLOW);    tft.setTextSize(3);
+	tft.print(timems);
+	tft.print("ms");
+
 }
 
 LaborLogAmplifier::~LaborLogAmplifier() {
