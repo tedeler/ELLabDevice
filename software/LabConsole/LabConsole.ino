@@ -1,3 +1,5 @@
+#include "global.h"
+
 #include "Arduino.h"
 
 
@@ -24,6 +26,13 @@ MCUFRIEND_kbv tft;
     #undef __FlashStringHelper::F(string_literal) /*??*/
     #define F(string_literal) string_literal
 #endif
+
+
+#include "Labor.h"
+#include "LaborLogAmplifier.h"
+#include "LaborLogAmplifierTimeChoice.h"
+
+
 
 // For the Arduino Due:
 //   D0 connects to digital pin 8
@@ -69,25 +78,6 @@ TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 // optional
 #define LCD_RESET A4  // Can alternately just connect to Arduino's reset pin
 
-// Assign human-readable names to some common 16-bit color values:
-#define	BLACK     0x0000
-#define	BLUE      0x001F
-#define BLUE1     0x041F
-#define BLUEHAW1  0x9DDA
-#define BLUEHAW2  0x1A32
-#define	RED       0xF800
-#define	GREEN     0x07E0
-#define CYAN      0x07FF
-#define MAGENTA   0xF81F
-#define YELLOW    0xFFE0
-#define ORANGE    0xFC00
-#define WHITE     0xFFFF
-#define BACKCOLOR 0xFFFF
-
-#define BOXSIZE 40
-#define SIDE_H 114
-#define SIDE_V 30
-#define START_H 30
 
 #define BUFFER_SIZE 44100
 
@@ -124,7 +114,7 @@ const int interrupt0 = 22;
 int zaehler2;
 bool aktualisieren = true;
 unsigned short resolution;
-char count = 0;//Define the count
+int Rotary1Counter = 0;//Define the count
 int lastCLK = 0;//CLK initial value
 
 int MyAnalogRead(uint8_t pin);
@@ -208,7 +198,7 @@ void setup(void) {
   adc_setup();
 }
 
-void Startdisplay(){
+void DisplayStartScreen(){
      //tft.fillRect(x1, y1, x-Breite, y-Höhe, Farbe)
      tft.fillScreen(WHITE);
      for(int z=0; z<4; z++){
@@ -223,7 +213,7 @@ void Startdisplay(){
 
      tft.setCursor(390, 30);
      tft.setTextColor(BLUEHAW2);    tft.setTextSize(3);
-     tft.println("V1.1");
+     tft.println("V1.2");
 
      tft.setCursor(114, 63);
      tft.setTextColor(BLUEHAW2);    tft.setTextSize(3);
@@ -263,26 +253,42 @@ int touch(){
     //pressure of 0 means no pressing!
 
     if(p.z > MINPRESSURE && p.z < MAXPRESSURE) {
-    #if (debug)
+//    #if (debug)
        Serial.print("p.x: ");
        Serial.println(p.x);
        Serial.print("p.y: ");
        Serial.println(p.y);
-    #endif
+//    #endif
     //scale from 0->1023 to tft.width
     p.x = map(p.x, TS_MINX, TS_MAXX, 0,tft.width());     //tft.width for 480 pixel
     p.y = map(p.y, TS_MINY, TS_MAXY, 0, tft.height());   //tft.hight for 320 pixel
-    #if (debug)
+//    #if (debug)
        Serial.print("p.x_new: ");
        Serial.println(p.x);
        Serial.print("p.y_new: ");
        Serial.println(p.y);
-    #endif
+//    #endif
     x = p.x;
     y = p.y;
     }
     return x, y;
 }
+
+TSPoint ReadDisplayTouch(){
+	digitalWrite(13, HIGH);
+	TSPoint p = ts.getPoint();
+	digitalWrite(13, LOW);
+
+	pinMode(XM, OUTPUT);
+	pinMode(YP, OUTPUT);
+
+	p.z = (p.z > MINPRESSURE && p.z < MAXPRESSURE);
+	p.x = map(p.x, TS_MINX, TS_MAXX, 0,tft.width());     //tft.width for 480 pixel
+	p.y = map(p.y, TS_MINY, TS_MAXY, 0, tft.height());   //tft.hight for 320 pixel
+
+	return p;
+}
+
 
 void ppm(uint16_t x, uint16_t y){
     //Darstellung PPM:
@@ -436,19 +442,122 @@ void ClockChanged()
   if (lastCLK != clkValue)
   {
     lastCLK = clkValue;
-    count += (clkValue != dtValue ? 1 : -1);//CLK and inconsistent DT + 1, otherwise - 1
-    resolution = (abs(count)%9)+1;
+    Rotary1Counter += (clkValue != dtValue ? 1 : -1);//CLK and inconsistent DT + 1, otherwise - 1
+    resolution = (abs(Rotary1Counter)%9)+1;
 //    ms_time();
     #if(debug)
       Serial.print("count, resolution: ");//Vorsicht: Zeitliches Verhalten durch print-
-      Serial.println(count, resolution);  //Anweisungen anders!!
+      Serial.println(Rotary1Counter, resolution);  //Anweisungen anders!!
     #endif
   }
 }
 
-void loop(){
+
+
+laborchoice_t getLaborChoiceFromTouchInput() {
+	TSPoint p;
+	int16_t x,y;
+
+	p = ReadDisplayTouch();
+
+	if(!p.z)
+		return LC_None;
+
+	x = p.x;
+	y = p.y;
+
+	Serial.print(x);
+	Serial.print(" ");
+	Serial.println(y);
+
+    if(x > 114 && x < 364){
+       if(y >120 && y < 160){
+    	   return LC_Labor1;
+       }
+       if(y >190 && y < 230){
+    	   return LC_Labor2;
+       }
+       if(y > 260 && y < 300){
+    	   return LC_Labor3;
+       }
+    }
+
+    x = 0; y = 0;
+    return LC_None;
+}
+
+
+void loop() {
+	enum state_t {S_WRITEDISPLAY, S_WAIT_TOUCHINPUT, S_EXECLAB, S_EXECLAB1_TIMECHOICE, S_EXECLAB1};
+	static state_t state = S_WRITEDISPLAY;
+	static Labor *currentLabor;
+	laborchoice_t choice = LC_None;
+	Labor::loopResult_t loopResult;
+	TSPoint touchPoint;
+	int Rotary1Switch = (digitalRead(SW) == LOW);
+
+	if(currentLabor)
+		loopResult = currentLabor->loop(Rotary1Counter, Rotary1Switch, 0, 0, touchPoint);
+
+
+	switch(state) {
+	case S_WRITEDISPLAY:
+	    DisplayStartScreen();
+
+	    state = S_EXECLAB1;
+	    currentLabor = new LaborLogAmplifier(10);
+	    break;
+
+	    state = S_WAIT_TOUCHINPUT;
+	    break;
+	case S_WAIT_TOUCHINPUT:
+		choice = getLaborChoiceFromTouchInput();
+		Serial.println(choice);
+		switch(choice){
+		case LC_Labor1:
+			currentLabor = new LaborLogAmplifier_TimeChoice();
+			state = S_EXECLAB1_TIMECHOICE;
+			break;
+		case LC_Labor2:
+			break;
+		case LC_Labor3:
+			break;
+		default:
+			break;
+		}
+		break;
+	case S_EXECLAB1_TIMECHOICE:
+		if(loopResult == Labor::LR_EXIT){
+			delete currentLabor;
+			currentLabor = 0;
+			state = S_WRITEDISPLAY;
+		}
+
+		if(loopResult == Labor::LR_SWITCH){
+			LaborLogAmplifier_TimeChoice *lab = reinterpret_cast<LaborLogAmplifier_TimeChoice *>(currentLabor);
+			int16_t timems = lab->get_timems();
+			delete currentLabor;
+			currentLabor = new LaborLogAmplifier(timems);
+			state = S_EXECLAB1;
+		}
+		break;
+
+	case S_EXECLAB1:
+		if(loopResult == Labor::LR_EXIT){
+			delete currentLabor;
+			currentLabor = 0;
+			state = S_WRITEDISPLAY;
+		}
+		break;
+
+	default:
+		break;
+	}
+}
+
+void loopx(){
     if(paint0){
-        Startdisplay();
+        DisplayStartScreen();
     }
     touch();
     #if (debug)

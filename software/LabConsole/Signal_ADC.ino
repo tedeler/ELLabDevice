@@ -1,3 +1,12 @@
+//Interfacing Variables
+
+
+
+unsigned long ADCSampleCount = 0;
+uint16_t ADCValue_BNC1 = 0;
+bool ADCReady_BNC1 = false;
+
+
 /*************  Configure ADC function  *******************/
 void adc_setup() {
   PMC->PMC_PCER1 |= PMC_PCER1_PID37;                    // ADC power on
@@ -12,15 +21,18 @@ void adc_setup() {
 }
 
 void ADC_Handler() {
-  #if(debug)
-       last = current;
-       current=micros();
-  #endif  
   ADC_xm = ADC->ADC_CDR[4];   // A3  = xm (CH4)
   ADC_yp = ADC->ADC_CDR[5];   // A2 = yp (CH5)
-  BNC1Pin = ADC->ADC_CDR[10]; // Read the last conversion and
-                              // clear status register ADC->ADC_SR bit EOC10                              
-  counter++;                                                                                                                    
+
+
+
+  if (ADCSampleCount == 20) {
+	  ADCSampleCount = 0;
+	  ADCValue_BNC1 = ADC->ADC_CDR[10];
+	  ADCReady_BNC1 = true;
+  }
+
+  ADCSampleCount++;
 }
 
 int MyAnalogRead(uint8_t pin){
