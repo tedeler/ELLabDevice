@@ -13,7 +13,7 @@ MCUFRIEND_kbv tft;
 #define F(string_literal) string_literal
 #endif
 
-#include "Labor.h"
+#include "ApplicationBase.h"
 #include "LaborLogAmplifier.h"
 #include "LaborLogAmplifierTimeChoice.h"
 
@@ -124,10 +124,6 @@ laborchoice_t getLaborChoiceFromTouchInput() {
 	x = p.x;
 	y = p.y;
 
-	Serial.print(x);
-	Serial.print(" ");
-	Serial.println(y);
-
 	if (x > 114 && x < 364) {
 		if (y > 120 && y < 160) {
 			return LC_Labor1;
@@ -184,9 +180,9 @@ void loop() {
 		S_EXECLAB1
 	};
 	static state_t state = S_WRITEDISPLAY;
-	static Labor *currentLabor;
+	static ApplicationBase *currentLabor;
 	laborchoice_t choice = LC_None;
-	Labor::loopResult_t loopResult;
+	ApplicationBase::loopResult_t loopResult;
 	TSPoint touchPoint;
 	int Rotary1Switch = (digitalRead(Rotary1SWPin) == LOW);
 
@@ -207,7 +203,6 @@ void loop() {
 		break;
 	case S_WAIT_TOUCHINPUT:
 		choice = getLaborChoiceFromTouchInput();
-		Serial.println(choice);
 		switch (choice) {
 		case LC_Labor1:
 			currentLabor = new LaborLogAmplifier_TimeChoice();
@@ -222,13 +217,13 @@ void loop() {
 		}
 		break;
 	case S_EXECLAB1_TIMECHOICE:
-		if (loopResult == Labor::LR_EXIT) {
+		if (loopResult == ApplicationBase::LR_EXIT) {
 			delete currentLabor;
 			currentLabor = 0;
 			state = S_WRITEDISPLAY;
 		}
 
-		if (loopResult == Labor::LR_SWITCH) {
+		if (loopResult == ApplicationBase::LR_SWITCH) {
 			LaborLogAmplifier_TimeChoice *lab =
 					reinterpret_cast<LaborLogAmplifier_TimeChoice *>(currentLabor);
 			int16_t timems = lab->get_timems();
@@ -239,7 +234,7 @@ void loop() {
 		break;
 
 	case S_EXECLAB1:
-		if (loopResult == Labor::LR_EXIT) {
+		if (loopResult == ApplicationBase::LR_EXIT) {
 			delete currentLabor;
 			currentLabor = 0;
 			state = S_WRITEDISPLAY;

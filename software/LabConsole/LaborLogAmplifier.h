@@ -8,9 +8,10 @@
 #ifndef LABORLOGAMPLIFIER_H_
 #define LABORLOGAMPLIFIER_H_
 #include <arduino.h>
-#include "Labor.h"
 
-class LaborLogAmplifier: public Labor {
+#include "ApplicationBase.h"
+
+class LaborLogAmplifier: public ApplicationBase {
 public:
 	LaborLogAmplifier(int16_t timems);
 	virtual ~LaborLogAmplifier();

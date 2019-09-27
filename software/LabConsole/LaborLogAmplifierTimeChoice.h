@@ -10,9 +10,9 @@
 
 #include <Arduino.h>
 
-#include "Labor.h"
+#include "ApplicationBase.h"
 
-class LaborLogAmplifier_TimeChoice: public Labor {
+class LaborLogAmplifier_TimeChoice: public ApplicationBase {
 public:
 	LaborLogAmplifier_TimeChoice();
 	virtual ~LaborLogAmplifier_TimeChoice();

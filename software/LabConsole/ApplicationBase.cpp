@@ -5,14 +5,14 @@
  *      Author: torsten
  */
 
-#include "Labor.h"
+#include "ApplicationBase.h"
 
-Labor::Labor() {
+ApplicationBase::ApplicationBase() {
 	// TODO Auto-generated constructor stub
 
 }
 
-Labor::~Labor() {
+ApplicationBase::~ApplicationBase() {
 	// TODO Auto-generated destructor stub
 }
 

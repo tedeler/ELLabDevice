@@ -5,8 +5,9 @@
  *      Author: torsten
  */
 
-#include "global.h"
 #include "LaborLogAmplifierTimeChoice.h"
+
+#include "global.h"
 #include <Arduino.h>
 #include <MCUFRIEND_kbv.h>
 
