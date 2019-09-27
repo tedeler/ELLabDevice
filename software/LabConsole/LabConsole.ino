@@ -9,13 +9,14 @@
 MCUFRIEND_kbv tft;
 
 #if defined(__SAM3X8E__)
-#undef __FlashStringHelper::F(string_literal) /*??*/
+#undef __FlashStringHelper::F(string_literal)
 #define F(string_literal) string_literal
 #endif
 
 #include "ApplicationBase.h"
 #include "LaborLogAmplifier.h"
 #include "LaborLogAmplifierTimeChoice.h"
+#include "LaborStarter.h"
 
 
 // TOUCH PANEL PINS
@@ -47,54 +48,16 @@ const int Rotary1DTPin = 23; //DT->
 const int Rotary1SWPin = 24; //SW->
 int Rotary1Counter = 0; //Define the count
 
+void Rotary1_InterruptServiceRoutine() {
+	static int lastCLK = 0; //Rotary1ClkPin initial value
 
-
-int MyAnalogRead(uint8_t pin);
-
-
-void DisplayStartScreen() {
-	//tft.fillRect(x1, y1, x-Breite, y-HÃ¶he, Farbe)
-	tft.fillScreen(WHITE);
-	for (int z = 0; z < 4; z++) {
-		tft.fillRect(20, 20 + 20 * z, 60, 4, BLUEHAW1);  //Farbe: HAW hellblau
+	delayMicroseconds(40);
+	int clkValue = digitalRead(Rotary1ClkPin); //Read the CLK pin level
+	int dtValue = digitalRead(Rotary1DTPin); //Read the DT pin level
+	if (lastCLK != clkValue) {
+		lastCLK = clkValue;
+		Rotary1Counter += (clkValue != dtValue ? 1 : -1); //Rotary1ClkPin and inconsistent DT + 1, otherwise - 1
 	}
-	for (int z = 0; z < 4; z++) {
-		tft.fillRect(36, 30 + 20 * z, 60, 4, BLUEHAW2);  //Farbe: HAW dunkelblau
-	}
-	tft.setCursor(114, 30);
-	tft.setTextColor(BLUEHAW2);
-	tft.setTextSize(3);
-	tft.println("HAW");
-
-	tft.setCursor(390, 30);
-	tft.setTextColor(BLUEHAW2);
-	tft.setTextSize(3);
-	tft.println("V1.2");
-
-	tft.setCursor(114, 63);
-	tft.setTextColor(BLUEHAW2);
-	tft.setTextSize(3);
-	tft.println("HAMBURG");
-
-	tft.fillRect(SIDE_H, 120, 250, BOXSIZE, BLUEHAW2); //X1, Y1, X-Breite, Y-HÃ¶he, Farbe
-	tft.fillRect(SIDE_H, 120 + SIDE_V + BOXSIZE, 250, BOXSIZE, BLUEHAW2);
-	tft.fillRect(SIDE_H, 120 + 2 * SIDE_V + 2 * BOXSIZE, 250, BOXSIZE,
-	BLUEHAW2);
-
-	tft.setCursor(175, 130);
-	tft.setTextColor(WHITE);
-	tft.setTextSize(3);
-	tft.println("Labor 1");
-
-	tft.setCursor(175, 200);
-	tft.setTextColor(WHITE);
-	tft.setTextSize(3);
-	tft.println("Labor 2");
-
-	tft.setCursor(175, 270);
-	tft.setTextColor(WHITE);
-	tft.setTextSize(3);
-	tft.println("Labor 3");
 }
 
 TSPoint ReadDisplayTouch() {
@@ -112,46 +75,6 @@ TSPoint ReadDisplayTouch() {
 	return p;
 }
 
-laborchoice_t getLaborChoiceFromTouchInput() {
-	TSPoint p;
-	int16_t x, y;
-
-	p = ReadDisplayTouch();
-
-	if (!p.z)
-		return LC_None;
-
-	x = p.x;
-	y = p.y;
-
-	if (x > 114 && x < 364) {
-		if (y > 120 && y < 160) {
-			return LC_Labor1;
-		}
-		if (y > 190 && y < 230) {
-			return LC_Labor2;
-		}
-		if (y > 260 && y < 300) {
-			return LC_Labor3;
-		}
-	}
-
-	x = 0;
-	y = 0;
-	return LC_None;
-}
-
-void Rotary1_InterruptServiceRoutine() {
-	static int lastCLK = 0; //Rotary1ClkPin initial value
-
-	delayMicroseconds(40);
-	int clkValue = digitalRead(Rotary1ClkPin); //Read the CLK pin level
-	int dtValue = digitalRead(Rotary1DTPin); //Read the DT pin level
-	if (lastCLK != clkValue) {
-		lastCLK = clkValue;
-		Rotary1Counter += (clkValue != dtValue ? 1 : -1); //Rotary1ClkPin and inconsistent DT + 1, otherwise - 1
-	}
-}
 
 void setup(void) {
 	Serial.begin(115200);
@@ -171,78 +94,90 @@ void setup(void) {
 	adc_setup();
 }
 
+
 void loop() {
 	enum state_t {
-		S_WRITEDISPLAY,
-		S_WAIT_TOUCHINPUT,
-		S_EXECLAB,
+		S_EXECSTART,
 		S_EXECLAB1_TIMECHOICE,
-		S_EXECLAB1
+		S_EXECLAB,
 	};
-	static state_t state = S_WRITEDISPLAY;
-	static ApplicationBase *currentLabor;
-	laborchoice_t choice = LC_None;
 	ApplicationBase::loopResult_t loopResult;
 	TSPoint touchPoint;
-	int Rotary1Switch = (digitalRead(Rotary1SWPin) == LOW);
+	int Rotary1Switch;
 
-	if (currentLabor)
-		loopResult = currentLabor->loop(Rotary1Counter, Rotary1Switch, 0, 0,
-				touchPoint);
+	ApplicationBase *currentApp = 0, *oldApp;
 
-	switch (state) {
-	case S_WRITEDISPLAY:
-		DisplayStartScreen();
+	//Das hier sind die zur Verfügung stehenden Apps
+	LaborStarter app_start;
+	LaborLogAmplifier_TimeChoice app_lab1_prelude;
+	LaborLogAmplifier app_lab1;
 
-//Wenn man die drei Kommentare löscht, dann geht er automatisch in die Anwendung mit 10ms
-//		state = S_EXECLAB1;
-//		currentLabor = new LaborLogAmplifier(10);
-//		break;
+	//Hier ist der Userinput (Rotary + TouchDisplay) drin.
+	ApplicationBase::userinput_t userinput;
 
-		state = S_WAIT_TOUCHINPUT;
-		break;
-	case S_WAIT_TOUCHINPUT:
-		choice = getLaborChoiceFromTouchInput();
-		switch (choice) {
-		case LC_Labor1:
-			currentLabor = new LaborLogAmplifier_TimeChoice();
-			state = S_EXECLAB1_TIMECHOICE;
-			break;
-		case LC_Labor2:
-			break;
-		case LC_Labor3:
-			break;
-		default:
-			break;
+
+	//Auswahl der ersten app (Startbildschirm)
+	state_t state = S_EXECSTART;
+	currentApp = oldApp = &app_start;
+	currentApp->init();
+
+
+	while(1){
+		userinput.Rotary1Switch = (digitalRead(Rotary1SWPin) == LOW);
+		userinput.Rotary1Counter = Rotary1Counter;
+
+		if(state != S_EXECLAB)
+			userinput.touchPoint = ReadDisplayTouch();
+
+		loopResult = currentApp->loop(userinput);
+
+		switch (state) {
+			case S_EXECSTART:
+				switch(loopResult){
+				case ApplicationBase::LR_SWITCH:
+					if(app_start.getChoice() == LaborStarter::LC_Labor1) {
+						currentApp = &app_lab1_prelude;
+						state = S_EXECLAB1_TIMECHOICE;
+					}
+					break;
+				default:
+					break;
+				}
+				break;
+			case S_EXECLAB1_TIMECHOICE:
+				switch(loopResult){
+				case ApplicationBase::LR_STAY:
+					break;
+				case ApplicationBase::LR_EXIT:
+					currentApp = &app_start;
+					state = S_EXECSTART;
+					break;
+				case ApplicationBase::LR_SWITCH:
+					currentApp = &app_lab1;
+					app_lab1.setTimems( app_lab1_prelude.get_timems() );
+					state = S_EXECLAB;
+					break;
+				}
+				break;
+			case S_EXECLAB:
+				switch(loopResult){
+				case ApplicationBase::LR_STAY:
+					break;
+				case ApplicationBase::LR_EXIT:
+					currentApp = &app_start;
+					state = S_EXECSTART;
+					break;
+				case ApplicationBase::LR_SWITCH:
+					break;
+				}
+				break;
 		}
-		break;
-	case S_EXECLAB1_TIMECHOICE:
-		if (loopResult == ApplicationBase::LR_EXIT) {
-			delete currentLabor;
-			currentLabor = 0;
-			state = S_WRITEDISPLAY;
+
+		if (currentApp != oldApp) {
+			currentApp->init();
+			oldApp->done();
+			oldApp = currentApp;
 		}
 
-		if (loopResult == ApplicationBase::LR_SWITCH) {
-			LaborLogAmplifier_TimeChoice *lab =
-					reinterpret_cast<LaborLogAmplifier_TimeChoice *>(currentLabor);
-			int16_t timems = lab->get_timems();
-			delete currentLabor;
-			currentLabor = new LaborLogAmplifier(timems);
-			state = S_EXECLAB1;
-		}
-		break;
-
-	case S_EXECLAB1:
-		if (loopResult == ApplicationBase::LR_EXIT) {
-			delete currentLabor;
-			currentLabor = 0;
-			state = S_WRITEDISPLAY;
-		}
-		break;
-
-	default:
-		break;
 	}
 }
-

@@ -17,8 +17,14 @@ extern uint16_t ADCValue_BNC1;
 extern bool ADCReady_BNC1;
 
 
-LaborLogAmplifier::LaborLogAmplifier(int16_t timems) :
-		timems(timems) {
+LaborLogAmplifier::LaborLogAmplifier() :
+		timems(0) {
+}
+
+LaborLogAmplifier::~LaborLogAmplifier() {
+}
+
+void LaborLogAmplifier::init() {
 	//Darstellung PPM:
 	tft.fillScreen(BLACK);    //Bildschirm schwarz
 
@@ -70,13 +76,7 @@ LaborLogAmplifier::LaborLogAmplifier(int16_t timems) :
 	tft.setTextColor(YELLOW);    tft.setTextSize(3);
 	tft.print(timems);
 	tft.print("ms");
-
 }
-
-LaborLogAmplifier::~LaborLogAmplifier() {
-}
-
-
 
 void LaborLogAmplifier::DisplayDBBar(double ValueDB){
 	static double oldValue = 0;
@@ -101,9 +101,7 @@ void LaborLogAmplifier::DisplayDBBar(double ValueDB){
 	oldValue = ValueDB;
 }
 
-LaborLogAmplifier::loopResult_t LaborLogAmplifier::loop(int Rotary1Counter,
-		int Rotary1Switch, int Rotary2Counter, int Rotary2Switch,
-		TSPoint touchPoint) {
+LaborLogAmplifier::loopResult_t LaborLogAmplifier::loop(LaborLogAmplifier::userinput_t userinput) {
 
 	static int sampleCount = 0;
 	static double meanSampleDBValue = 0;
@@ -116,6 +114,6 @@ LaborLogAmplifier::loopResult_t LaborLogAmplifier::loop(int Rotary1Counter,
 		DisplayDBBar(meanSampleDBValue);
 	}
 
-	return Rotary1Switch ? LR_EXIT:LR_STAY;
+	return userinput.Rotary1Switch ? LR_EXIT:LR_STAY;
 }
 

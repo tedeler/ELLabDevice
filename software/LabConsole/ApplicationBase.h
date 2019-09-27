@@ -10,15 +10,21 @@
 
 #include "MyTouchScreen.h"
 
-enum laborchoice_t {LC_None, LC_Labor1, LC_Labor2, LC_Labor3};
-
 class ApplicationBase {
 public:
 	enum loopResult_t {LR_EXIT, LR_STAY, LR_SWITCH};
+	struct userinput_t {int Rotary1Counter;
+	                   int Rotary1Switch;
+	                   int Rotary2Counter;
+	                   int Rotary2Switch;
+	                   TSPoint touchPoint;};
 
 	ApplicationBase();
 	virtual ~ApplicationBase();
-	virtual loopResult_t loop(int Rotary1Counter, int Rotary1Switch, int Rotary2Counter, int Rotary2Switch, TSPoint touchPoint) = 0;
+
+	virtual loopResult_t loop(ApplicationBase::userinput_t userinput) {return LR_STAY;};
+	virtual void init() {};
+	virtual void done() {};
 
 private:
 

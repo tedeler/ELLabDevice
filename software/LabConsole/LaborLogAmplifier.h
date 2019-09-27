@@ -13,10 +13,15 @@
 
 class LaborLogAmplifier: public ApplicationBase {
 public:
-	LaborLogAmplifier(int16_t timems);
+	LaborLogAmplifier();
 	virtual ~LaborLogAmplifier();
 
-	virtual loopResult_t loop(int Rotary1Counter, int Rotary1Switch, int Rotary2Counter, int Rotary2Switch, TSPoint touchPoint);
+	virtual loopResult_t loop(LaborLogAmplifier::userinput_t userinput);
+	virtual void init();
+
+	void setTimems(int16_t timems) {
+		this->timems = timems;
+	}
 
 private:
 	int16_t timems;

@@ -17,7 +17,8 @@ public:
 	LaborLogAmplifier_TimeChoice();
 	virtual ~LaborLogAmplifier_TimeChoice();
 
-	virtual loopResult_t loop(int Rotary1Counter, int Rotary1Switch, int Rotary2Counter, int Rotary2Switch, TSPoint touchPoint);
+	virtual loopResult_t loop(LaborLogAmplifier_TimeChoice::userinput_t userinput);
+	void init();
 	int16_t get_timems(){return timems;}
 
 private:

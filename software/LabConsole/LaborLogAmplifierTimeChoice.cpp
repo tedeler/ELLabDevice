@@ -16,6 +16,11 @@ extern MCUFRIEND_kbv tft;
 LaborLogAmplifier_TimeChoice::LaborLogAmplifier_TimeChoice()
 	:timems(0)
 {
+
+}
+
+void LaborLogAmplifier_TimeChoice::init()
+	{
     //Darstellung PPM:
     tft.fillScreen(BLACK);    //Bildschirm schwarz
     tft.setCursor(25, 38);
@@ -40,9 +45,9 @@ LaborLogAmplifier_TimeChoice::~LaborLogAmplifier_TimeChoice() {
 	// TODO Auto-generated destructor stub
 }
 
-LaborLogAmplifier_TimeChoice::loopResult_t LaborLogAmplifier_TimeChoice::loop(int Rotary1Counter, int Rotary1Switch, int Rotary2Counter, int Rotary2Switch, TSPoint touchPoint) {
+LaborLogAmplifier_TimeChoice::loopResult_t LaborLogAmplifier_TimeChoice::loop(LaborLogAmplifier_TimeChoice::userinput_t userinput) {
 
-    int selection = (3+Rotary1Counter % 3)%3;
+    int selection = (3+userinput.Rotary1Counter % 3)%3;
     char *text[] = {"10ms", "100ms", "1000ms"};
     int value[] = {10, 100, 1000};
 
@@ -52,7 +57,7 @@ LaborLogAmplifier_TimeChoice::loopResult_t LaborLogAmplifier_TimeChoice::loop(in
         tft.println(text[i]);
     }
 
-    if(Rotary1Switch) {
+    if(userinput.Rotary1Switch) {
     	timems = value[selection];
     	return LR_SWITCH;
     }
