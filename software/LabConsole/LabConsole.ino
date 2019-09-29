@@ -19,11 +19,6 @@ MCUFRIEND_kbv tft;
 #include "LaborStarter.h"
 
 
-// TOUCH PANEL PINS
-#define YP A2  // must be an analog pin, use "An" notation!
-#define XM A3  // must be an analog pin, use "An" notation!
-#define YM 8   // can be a digital pin
-#define XP 9   // can be a digital pin
 
 //Min.-Koordinaten
 #define TS_MINX 100

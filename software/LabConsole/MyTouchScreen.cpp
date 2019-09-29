@@ -13,6 +13,7 @@
 //	typedef uint8_t Port_t;
 //#endif
 #include "MyTouchScreen.h"
+#include "global.h"
 
 // increase or decrease the touchscreen oversampling. This is a little different than you make think:
 // 1 is no oversampling, whatever data we get is immediately returned
@@ -54,90 +55,83 @@ static void insert_sort(int array[], uint8_t size) {
 }
 #endif
 
+#define OUTLOW(p) p.pPort->PIO_OER = p.ulPin; p.pPort->PIO_CODR = p.ulPin;
+#define OUTHIGH(p) p.pPort->PIO_OER = p.ulPin; p.pPort->PIO_SODR = p.ulPin;
+#define PININPUT(p) p.pPort->PIO_ODR = p.ulPin
+
 TSPoint TouchScreen::getPoint(void) {
-  unsigned long start = micros();
+	unsigned long start = micros();
+	const PinDescription p_YP = g_APinDescription[YP];
+	const PinDescription p_YM = g_APinDescription[YM];
+	const PinDescription p_XP = g_APinDescription[XP];
+	const PinDescription p_XM = g_APinDescription[XM];
 
+	int x, y, z;
+	int samples[NUMSAMPLES];
+	uint8_t valid;
 
-  int x, y, z;
-  int samples[NUMSAMPLES];
-  uint8_t valid;
+	valid = 1;
 
-  valid = 1;
+	PININPUT(p_YP);
+	PININPUT(p_YM);
+	OUTHIGH(p_XP);
+	OUTLOW(p_XM);
+	samples[0] = MyAnalogRead(_yp);
+	samples[1] = MyAnalogRead(_yp);
 
-  pinMode(_yp, INPUT);
-  pinMode(_ym, INPUT);
-  
-  digitalWrite(_yp, LOW);
-  digitalWrite(_ym, LOW);
-   
-  pinMode(_xp, OUTPUT);
-  pinMode(_xm, OUTPUT);
-  digitalWrite(_xp, HIGH);
-  digitalWrite(_xm, LOW);
-  samples[0] = MyAnalogRead(_yp);
-  samples[1] = MyAnalogRead(_yp);
-  if (samples[0]>>2 != samples[1]>>2)
-	  valid = 0;
-  x = (1023-samples[1]);
+	if (samples[0]>>2 != samples[1]>>2)
+		valid = 0;
+	x = (1023-samples[1]);
 
-   pinMode(_xp, INPUT);
-   pinMode(_xm, INPUT);
-//   *portOutputRegister(xp_port) &= ~xp_pin;
-   digitalWrite(_xp, LOW);
-   
-   pinMode(_yp, OUTPUT);
-//   *portOutputRegister(yp_port) |= yp_pin;
-   digitalWrite(_yp, HIGH);
-   pinMode(_ym, OUTPUT);
-//   *portOutputRegister(ym_port) &= ~yp_pin;
-   digitalWrite(_ym, LOW);
+	PININPUT(p_XP);
+	PININPUT(p_XM);
+	OUTHIGH(p_YP);
+	OUTLOW(p_YM);
 
-   samples[0] = MyAnalogRead(_xm);
-   samples[1] = MyAnalogRead(_xm);
+	samples[0] = MyAnalogRead(_xm);
+	samples[1] = MyAnalogRead(_xm);
+	if (samples[0]>>2 != samples[1]>>2)
+		valid = 0;
 
-   if (samples[0]>>2 != samples[1]>>2)
-	   valid = 0;
+	y = (1023-samples[1]);
 
-   y = (1023-samples[1]);
+	OUTLOW(p_XP);
+	OUTHIGH(p_YM);
+	PININPUT(p_YP);
 
-   // Set X+ to ground
-   pinMode(_xp, OUTPUT);
-//   *portOutputRegister(xp_port) &= ~xp_pin;
-   digitalWrite(_xp, LOW);
-  
-   // Set Y- to VCC
-//   *portOutputRegister(ym_port) |= ym_pin;
-   digitalWrite(_ym, HIGH); 
-  
-   // Hi-Z X- and Y+
-//   *portOutputRegister(yp_port) &= ~yp_pin;
-   digitalWrite(_yp, LOW);
-   pinMode(_yp, INPUT);
-  
-   int z1 = MyAnalogRead(_xm); 
-   int z2 = MyAnalogRead(_yp);
+	int z1 = MyAnalogRead(_xm);
+	int z2 = MyAnalogRead(_yp);
 
-   if (_rxplate != 0) {
-     // now read the x 
-     float rtouch;
-     rtouch = z2;
-     rtouch /= z1;
-     rtouch -= 1;
-     rtouch *= x;
-     rtouch *= _rxplate;
-     rtouch /= 1024;
-     
-     z = rtouch;
-   } else {
-     z = (1023-(z2-z1));
-   }
+	if (_rxplate != 0) {
+	 // now read the x
+	 float rtouch;
+	 rtouch = z2;
+	 rtouch /= z1;
+	 rtouch -= 1;
+	 rtouch *= x;
+	 rtouch *= _rxplate;
+	 rtouch /= 1024;
 
-   if (! valid) {
-     z = 0;
-   }
+	 z = rtouch;
+	} else {
+	 z = (1023-(z2-z1));
+	}
 
-   Serial.println(micros() - start);
-   return TSPoint(x, y, z);
+	if (! valid) {
+	 z = 0;
+	}
+
+	unsigned long stop = micros();
+
+	Serial.println(stop - start);
+	if(z>0)
+	{
+		Serial.print(" -- ");
+		Serial.print(x); Serial.print(", ");
+		Serial.print(y); Serial.print(", ");
+		Serial.print(z); Serial.println("");
+	}
+	return TSPoint(x, y, z);
 }
 
 TouchScreen::TouchScreen(uint8_t xp, uint8_t yp, uint8_t xm, uint8_t ym) {
