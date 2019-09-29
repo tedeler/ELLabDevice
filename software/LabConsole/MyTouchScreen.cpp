@@ -65,61 +65,88 @@ TSPoint TouchScreen::getPoint(void) {
 	const PinDescription p_YM = g_APinDescription[YM];
 	const PinDescription p_XP = g_APinDescription[XP];
 	const PinDescription p_XM = g_APinDescription[XM];
+	static int state = 0;
+	static int x, y, z;
+	static int samples[2];
+	static uint8_t valid;
+	static int z1;
+	static int z2;
 
-	int x, y, z;
-	int samples[NUMSAMPLES];
-	uint8_t valid;
 
-	valid = 1;
+	Serial.print(state);
+	Serial.print(": ");
 
-	PININPUT(p_YP);
-	PININPUT(p_YM);
-	OUTHIGH(p_XP);
-	OUTLOW(p_XM);
-	samples[0] = MyAnalogRead(_yp);
-	samples[1] = MyAnalogRead(_yp);
+	switch(state) {
+	case 0:
+		state++;
+		break;
+	case 1:
+		PININPUT(p_YP);
+		PININPUT(p_YM);
+		OUTHIGH(p_XP);
+		OUTLOW(p_XM);
+		samples[0] = MyAnalogRead(_yp);
+		samples[1] = MyAnalogRead(_yp);
+		x = (1023-samples[1]);
+		if (samples[0]>>2 != samples[1]>>2)
+			state = 0;
+		else
+			state++;
+		break;
+	case 2:
+		PININPUT(p_XP);
+		PININPUT(p_XM);
+		OUTHIGH(p_YP);
+		OUTLOW(p_YM);
 
-	if (samples[0]>>2 != samples[1]>>2)
-		valid = 0;
-	x = (1023-samples[1]);
+		samples[0] = MyAnalogRead(_xm);
+		samples[1] = MyAnalogRead(_xm);
+		y = (1023-samples[1]);
 
-	PININPUT(p_XP);
-	PININPUT(p_XM);
-	OUTHIGH(p_YP);
-	OUTLOW(p_YM);
+		if (samples[0]>>2 != samples[1]>>2)
+			state = 0;
+		else
+			state++;
+		break;
+	case 3:
+		OUTLOW(p_XP);
+		OUTHIGH(p_YM);
+		PININPUT(p_YP);
+		PININPUT(p_XM);
 
-	samples[0] = MyAnalogRead(_xm);
-	samples[1] = MyAnalogRead(_xm);
-	if (samples[0]>>2 != samples[1]>>2)
-		valid = 0;
+		z1 = MyAnalogRead(_xm);
+		z2 = MyAnalogRead(_yp);
 
-	y = (1023-samples[1]);
+		if (_rxplate != 0) {
+			// now read the x
+			float rtouch;
+			rtouch = z2;
+			rtouch /= z1;
+			rtouch -= 1;
+			rtouch *= x;
+			rtouch *= _rxplate;
+			rtouch /= 1024;
+
+			z = rtouch;
+		} else {
+			z = (1023-(z2-z1));
+		}
+
+		state = 0;
+		break;
+	default:
+		state = 0;
+		break;
+	}
+
+
 
 	OUTLOW(p_XP);
 	OUTHIGH(p_YM);
 	PININPUT(p_YP);
+	PININPUT(p_XM);
 
-	int z1 = MyAnalogRead(_xm);
-	int z2 = MyAnalogRead(_yp);
 
-	if (_rxplate != 0) {
-	 // now read the x
-	 float rtouch;
-	 rtouch = z2;
-	 rtouch /= z1;
-	 rtouch -= 1;
-	 rtouch *= x;
-	 rtouch *= _rxplate;
-	 rtouch /= 1024;
-
-	 z = rtouch;
-	} else {
-	 z = (1023-(z2-z1));
-	}
-
-	if (! valid) {
-	 z = 0;
-	}
 
 	unsigned long stop = micros();
 
