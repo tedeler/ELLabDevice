@@ -13,11 +13,12 @@ MCUFRIEND_kbv tft;
 #define F(string_literal) string_literal
 #endif
 
+void tc_setup();
+
 #include "ApplicationBase.h"
 #include "LaborLogAmplifier.h"
 #include "LaborLogAmplifierTimeChoice.h"
 #include "LaborStarter.h"
-
 
 // TOUCH PANEL PINS
 #define YP A2  // must be an analog pin, use "An" notation!
@@ -33,7 +34,6 @@ MCUFRIEND_kbv tft;
 #define TS_MAXX 907
 #define TS_MAXY 880
 
-
 #define MINPRESSURE 10    //in TouchScreen.cpp pressureThreshold
 #define MAXPRESSURE 1000
 
@@ -41,7 +41,6 @@ TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 volatile uint16_t ADC_xm, ADC_yp;
 
 const int interrupt0 = 22;
-
 
 const int Rotary1ClkPin = 22; //Rotary1ClkPin->
 const int Rotary1DTPin = 23; //DT->
@@ -75,7 +74,6 @@ TSPoint ReadDisplayTouch() {
 	return p;
 }
 
-
 void setup(void) {
 	Serial.begin(115200);
 
@@ -94,12 +92,9 @@ void setup(void) {
 	adc_setup();
 }
 
-
 void loop() {
 	enum state_t {
-		S_EXECSTART,
-		S_EXECLAB1_TIMECHOICE,
-		S_EXECLAB,
+		S_EXECSTART, S_EXECLAB1_TIMECHOICE, S_EXECLAB,
 	};
 	ApplicationBase::loopResult_t loopResult;
 	TSPoint touchPoint;
@@ -115,62 +110,60 @@ void loop() {
 	//Hier ist der Userinput (Rotary + TouchDisplay) drin.
 	ApplicationBase::userinput_t userinput;
 
-
 	//Auswahl der ersten app (Startbildschirm)
 	state_t state = S_EXECSTART;
 	currentApp = oldApp = &app_start;
 	currentApp->init();
 
-
-	while(1){
+	while (1) {
 		userinput.Rotary1Switch = (digitalRead(Rotary1SWPin) == LOW);
 		userinput.Rotary1Counter = Rotary1Counter;
 
-		if(state != S_EXECLAB)
-			userinput.touchPoint = ReadDisplayTouch();
+//		if (state != S_EXECLAB)
+//			userinput.touchPoint = ReadDisplayTouch();
 
 		loopResult = currentApp->loop(userinput);
 
 		switch (state) {
-			case S_EXECSTART:
-				switch(loopResult){
-				case ApplicationBase::LR_SWITCH:
-					if(app_start.getChoice() == LaborStarter::LC_Labor1) {
-						currentApp = &app_lab1_prelude;
-						state = S_EXECLAB1_TIMECHOICE;
-					}
-					break;
-				default:
-					break;
+		case S_EXECSTART:
+			switch (loopResult) {
+			case ApplicationBase::LR_SWITCH:
+				if (app_start.getChoice() == LaborStarter::LC_Labor1) {
+					currentApp = &app_lab1_prelude;
+					state = S_EXECLAB1_TIMECHOICE;
 				}
 				break;
-			case S_EXECLAB1_TIMECHOICE:
-				switch(loopResult){
-				case ApplicationBase::LR_STAY:
-					break;
-				case ApplicationBase::LR_EXIT:
-					currentApp = &app_start;
-					state = S_EXECSTART;
-					break;
-				case ApplicationBase::LR_SWITCH:
-					currentApp = &app_lab1;
-					app_lab1.setTimems( app_lab1_prelude.get_timems() );
-					state = S_EXECLAB;
-					break;
-				}
+			default:
 				break;
-			case S_EXECLAB:
-				switch(loopResult){
-				case ApplicationBase::LR_STAY:
-					break;
-				case ApplicationBase::LR_EXIT:
-					currentApp = &app_start;
-					state = S_EXECSTART;
-					break;
-				case ApplicationBase::LR_SWITCH:
-					break;
-				}
+			}
+			break;
+		case S_EXECLAB1_TIMECHOICE:
+			switch (loopResult) {
+			case ApplicationBase::LR_STAY:
 				break;
+			case ApplicationBase::LR_EXIT:
+				currentApp = &app_start;
+				state = S_EXECSTART;
+				break;
+			case ApplicationBase::LR_SWITCH:
+				currentApp = &app_lab1;
+				app_lab1.setTimems(app_lab1_prelude.get_timems());
+				state = S_EXECLAB;
+				break;
+			}
+			break;
+		case S_EXECLAB:
+			switch (loopResult) {
+			case ApplicationBase::LR_STAY:
+				break;
+			case ApplicationBase::LR_EXIT:
+				currentApp = &app_start;
+				state = S_EXECSTART;
+				break;
+			case ApplicationBase::LR_SWITCH:
+				break;
+			}
+			break;
 		}
 
 		if (currentApp != oldApp) {

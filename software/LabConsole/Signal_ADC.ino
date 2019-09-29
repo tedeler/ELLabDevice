@@ -1,10 +1,13 @@
 //Interfacing Variables
 
 
+#include <Arduino.h>
 
 unsigned long ADCSampleCount = 0;
 uint16_t ADCValue_BNC1 = 0;
 bool ADCReady_BNC1 = false;
+
+TSPoint touch(uint16_t xm, uint16_t yp);
 
 
 /*************  Configure ADC function  *******************/
@@ -32,7 +35,103 @@ void ADC_Handler() {
 	  ADCReady_BNC1 = true;
   }
 
+  TSPoint touchPoint;
+  touchPoint = touch(ADC_xm, ADC_yp);
+
   ADCSampleCount++;
+}
+
+TSPoint touch(uint16_t xm, uint16_t yp) {
+	TSPoint result(0,0,0);
+
+	const uint8_t _yp=A2, _ym=8, _xm=A3, _xp=9;
+	const uint16_t _rxplate=300;
+
+	static int x, y, z;
+	int samples[2];
+
+	static int state = 0;
+
+	switch(state) {
+	case 0:
+		pinMode(_ym, INPUT);
+		break;
+	case 55:
+		pinMode(_yp, INPUT);
+		pinMode(_ym, INPUT);
+		digitalWrite(_yp, LOW);
+		digitalWrite(_ym, LOW);
+		pinMode(_xp, OUTPUT);
+		pinMode(_xm, OUTPUT);
+		digitalWrite(_xp, HIGH);
+		digitalWrite(_xm, LOW);
+		state++;
+		state = 0;
+		break;
+	case 1:
+		samples[0] = yp;
+		state++;
+		break;
+	case 2:
+		samples[1] = yp;
+		x = (1023-samples[0]);
+		if (samples[0]>>2 != samples[1]>>2)
+			state = 0;
+		else
+			state++;
+		break;
+	case 3:
+		pinMode(_xp, INPUT);
+		pinMode(_xm, INPUT);
+		digitalWrite(_xp, LOW);
+		pinMode(_yp, OUTPUT);
+		digitalWrite(_yp, HIGH);
+		pinMode(_ym, OUTPUT);
+		digitalWrite(_ym, LOW);
+		state++;
+		break;
+	case 4:
+		samples[0] = xm;
+		state++;
+		break;
+	case 5:
+		samples[1] = xm;
+		y = (1023-samples[0]);
+		if (samples[0]>>2 != samples[1]>>2)
+			state = 0;
+		else
+			state++;
+		break;
+	case 6:
+		pinMode(_xp, OUTPUT);
+		digitalWrite(_xp, LOW);
+		digitalWrite(_ym, HIGH);
+		digitalWrite(_yp, LOW);
+		pinMode(_yp, INPUT);
+		state++;
+		break;
+	case 7:
+	{
+		int z1=xm; int z2=yp;
+		float rtouch;
+		rtouch = z2;
+		rtouch /= z1;
+		rtouch -= 1;
+		rtouch *= x;
+		rtouch *= _rxplate;
+		rtouch /= 1024;
+		z = rtouch;
+		result.x = x;
+		result.y = y;
+		result.z = z;
+		state=0;
+		break;
+	}
+	default:
+		state = 0;
+	}
+
+	return result;
 }
 
 int MyAnalogRead(uint8_t pin){
