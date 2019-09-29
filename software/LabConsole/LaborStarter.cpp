@@ -26,6 +26,16 @@ LaborStarter::loopResult_t LaborStarter::loop(LaborStarter::userinput_t userinpu
 	TSPoint p = userinput.touchPoint;
 	int16_t x, y;
 
+
+	tft.fillScreen(WHITE);
+	if(p.z)
+		tft.fillScreen(BLUE);
+	else
+		tft.fillScreen(GREEN);
+	return LR_STAY;
+
+
+
 	if (!p.z)
 		return LR_STAY;
 

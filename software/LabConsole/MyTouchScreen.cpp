@@ -55,29 +55,18 @@ static void insert_sort(int array[], uint8_t size) {
 #endif
 
 TSPoint TouchScreen::getPoint(void) {
+  unsigned long start = micros();
+
+
   int x, y, z;
   int samples[NUMSAMPLES];
-  uint8_t i, valid;
-  
-
-  //Port_t xp_port = digitalPinToPort(_xp);
-  //Port_t yp_port = digitalPinToPort(_yp);
-  //Port_t xm_port = digitalPinToPort(_xm);
-  //Port_t ym_port = digitalPinToPort(_ym);
-//
-  //uint8_t xp_pin = digitalPinToBitMask(_xp);
-  //uint8_t yp_pin = digitalPinToBitMask(_yp);
-  //uint8_t xm_pin = digitalPinToBitMask(_xm);
-  //uint8_t ym_pin = digitalPinToBitMask(_ym);
-//
+  uint8_t valid;
 
   valid = 1;
 
   pinMode(_yp, INPUT);
   pinMode(_ym, INPUT);
   
-  //*portOutputRegister(yp_port) &= ~yp_pin;
-  //*portOutputRegister(ym_port) &= ~ym_pin;
   digitalWrite(_yp, LOW);
   digitalWrite(_ym, LOW);
    
@@ -85,19 +74,11 @@ TSPoint TouchScreen::getPoint(void) {
   pinMode(_xm, OUTPUT);
   digitalWrite(_xp, HIGH);
   digitalWrite(_xm, LOW);
-  //*portOutputRegister(xp_port) |= xp_pin;
-  //*portOutputRegister(xm_port) &= ~xm_pin;
-
-   for (i=0; i<NUMSAMPLES; i++) {
-     samples[i] = MyAnalogRead(_yp);
-   }
-#if NUMSAMPLES > 2
-   insert_sort(samples, NUMSAMPLES);
-#endif
-#if NUMSAMPLES == 2
-   if (samples[0]>>2 != samples[1]>>2) { valid = 0; }
-#endif
-   x = (1023-samples[NUMSAMPLES/2]);
+  samples[0] = MyAnalogRead(_yp);
+  samples[1] = MyAnalogRead(_yp);
+  if (samples[0]>>2 != samples[1]>>2)
+	  valid = 0;
+  x = (1023-samples[1]);
 
    pinMode(_xp, INPUT);
    pinMode(_xm, INPUT);
@@ -110,19 +91,14 @@ TSPoint TouchScreen::getPoint(void) {
    pinMode(_ym, OUTPUT);
 //   *portOutputRegister(ym_port) &= ~yp_pin;
    digitalWrite(_ym, LOW);
-  
-   for (i=0; i<NUMSAMPLES; i++) {
-     samples[i] = MyAnalogRead(_xm);
-   }
 
-#if NUMSAMPLES > 2
-   insert_sort(samples, NUMSAMPLES);
-#endif
-#if NUMSAMPLES == 2
-   if (samples[0]>>2 != samples[1]>>2) { valid = 0; }
-#endif
+   samples[0] = MyAnalogRead(_xm);
+   samples[1] = MyAnalogRead(_xm);
 
-   y = (1023-samples[NUMSAMPLES/2]);
+   if (samples[0]>>2 != samples[1]>>2)
+	   valid = 0;
+
+   y = (1023-samples[1]);
 
    // Set X+ to ground
    pinMode(_xp, OUTPUT);
@@ -160,6 +136,7 @@ TSPoint TouchScreen::getPoint(void) {
      z = 0;
    }
 
+   Serial.println(micros() - start);
    return TSPoint(x, y, z);
 }
 

@@ -21,21 +21,43 @@ void adc_setup() {
 }
 
 void ADC_Handler() {
-  ADC_xm = ADC->ADC_CDR[4];   // A3  = xm (CH4)
-  ADC_yp = ADC->ADC_CDR[5];   // A2 = yp (CH5)
+	uint16_t ch10value = ADC->ADC_CDR[10];
+//	ADC_xm = ADC->ADC_CDR[4];   // A3  = xm (CH4)
+//	ADC_yp = ADC->ADC_CDR[5];   // A2 = yp (CH5)
 
 
 
-  if (ADCSampleCount == 20) {
+	if (ADCSampleCount == 20) {
 	  ADCSampleCount = 0;
-	  ADCValue_BNC1 = ADC->ADC_CDR[10];
+	  ADCValue_BNC1 = ch10value;
 	  ADCReady_BNC1 = true;
-  }
+	}
 
-  ADCSampleCount++;
+	ADCSampleCount++;
 }
 
 int MyAnalogRead(uint8_t pin){
+  unsigned long result;
+  unsigned int channelnr;
+
+  if(pin == YP)
+	  channelnr = 5;
+  if(pin == XM)
+	  channelnr = 4;
+
+  ADC->ADC_CHER = (1<<channelnr);
+
+  while((ADC->ADC_ISR & (1<<channelnr)) == 0);
+
+  result = ADC->ADC_CDR[channelnr];
+
+  ADC->ADC_CHDR |= ADC_CHDR_CH4 |
+                   ADC_CHDR_CH5;
+
+  return result;
+}
+
+int MyAnalogRead1(uint8_t pin){
   unsigned long result;
   if(pin == YP){
     ADC->ADC_CHER = ADC_CHER_CH5;
