@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "LabConsole"
+		}
+	],
+	"settings": {
+		"terminal.integrated.env.windows": {
+			"PATH": "C:\\Users\\torsten\\.platformio\\penv\\Scripts;C:\\Users\\torsten\\.platformio\\penv;C:\\Program Files (x86)\\Common Files\\Oracle\\Java\\javapath;C:\\Program Files\\Microsoft MPI\\Bin\\;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files\\Microsoft VS Code\\bin;C:\\Program Files\\Git\\cmd;C:\\Program Files\\Git\\mingw64\\bin;C:\\Program Files\\Git\\usr\\bin;C:\\Program Files\\TortoiseGit\\bin;C:\\Program Files (x86)\\Intel\\Intel(R) Management Engine Components\\DAL;C:\\Program Files\\Intel\\Intel(R) Management Engine Components\\DAL;C:\\Program Files\\Intel\\WiFi\\bin\\;C:\\Program Files\\Common Files\\Intel\\WirelessCommon\\;C:\\Users\\torsten\\Anaconda3;C:\\Users\\torsten\\Anaconda3\\Library\\mingw-w64\\bin;C:\\Users\\torsten\\Anaconda3\\Library\\usr\\bin;C:\\Users\\torsten\\Anaconda3\\Library\\bin;C:\\Users\\torsten\\Anaconda3\\Scripts;C:\\Users\\torsten\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Program Files\\JetBrains\\PyCharm 2018.3\\bin;C:\\Users\\torsten\\leiningen;C:\\Users\\torsten\\AppData\\Local\\atom\\bin;C:\\Users\\torsten\\AppData\\Local\\Programs\\MiKTeX 2.9\\miktex\\bin\\x64\\;%USERPROFILE%\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Program Files (x86)\\Common Files\\Oracle\\Java\\javapath;C:\\Program Files\\Microsoft MPI\\Bin\\;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files\\Microsoft VS Code\\bin;C:\\Program Files\\Git\\cmd;C:\\Program Files\\Git\\mingw64\\bin;C:\\Program Files\\Git\\usr\\bin;C:\\Program Files\\TortoiseGit\\bin;C:\\Program Files (x86)\\Intel\\Intel(R) Management Engine Components\\DAL;C:\\Program Files\\Intel\\Intel(R) Management Engine Components\\DAL;C:\\Program Files\\Intel\\WiFi\\bin\\;C:\\Program Files\\Common Files\\Intel\\WirelessCommon\\;C:\\Users\\torsten\\Anaconda3;C:\\Users\\torsten\\Anaconda3\\Library\\mingw-w64\\bin;C:\\Users\\torsten\\Anaconda3\\Library\\usr\\bin;C:\\Users\\torsten\\Anaconda3\\Library\\bin;C:\\Users\\torsten\\Anaconda3\\Scripts;C:\\Users\\torsten\\AppData\\Local\\Microsoft\\WindowsApps;C:\\Program Files\\JetBrains\\PyCharm 2018.3\\bin;C:\\Users\\torsten\\leiningen;C:\\Users\\torsten\\AppData\\Local\\atom\\bin;C:\\Users\\torsten\\AppData\\Local\\Programs\\MiKTeX 2.9\\miktex\\bin\\x64\\;%USERPROFILE%\\AppData\\Local\\Microsoft\\WindowsApps",
+			"PLATFORMIO_CALLER": "vscode"
+		}
+	}
+}
