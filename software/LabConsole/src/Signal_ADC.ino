@@ -23,12 +23,13 @@ void adc_setup() {
 void ADC_Handler() {
   ADC_xm = ADC->ADC_CDR[4];   // A3  = xm (CH4)
   ADC_yp = ADC->ADC_CDR[5];   // A2 = yp (CH5)
+  uint16_t adc10value = ADC->ADC_CDR[10];
 
 
 
   if (ADCSampleCount == 20) {
 	  ADCSampleCount = 0;
-	  ADCValue_BNC1 = ADC->ADC_CDR[10];
+	  ADCValue_BNC1 = adc10value;
 	  ADCReady_BNC1 = true;
   }
 
