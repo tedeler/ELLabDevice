@@ -107,7 +107,7 @@ void loop() {
 
 	ApplicationBase *currentApp = 0, *oldApp;
 
-	//Das hier sind die zur Verfügung stehenden Apps
+	//Das hier sind die zur Verfï¿½gung stehenden Apps
 	LaborStarter app_start;
 	LaborLogAmplifier_TimeChoice app_lab1_prelude;
 	LaborLogAmplifier app_lab1;
@@ -123,7 +123,11 @@ void loop() {
 
 
 	while(1){
-		userinput.Rotary1Switch = (digitalRead(Rotary1SWPin) == LOW);
+		static int r1sw_oldstate = HIGH;
+		int r1sw_currentstate = digitalRead(Rotary1SWPin);
+		userinput.Rotary1Switch = (r1sw_currentstate != r1sw_oldstate && r1sw_currentstate==LOW);
+		r1sw_oldstate = r1sw_currentstate;
+
 		userinput.Rotary1Counter = Rotary1Counter;
 
 		if(state != S_EXECLAB)
