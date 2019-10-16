@@ -10,6 +10,7 @@
 #include "global.h"
 #include <Arduino.h>
 #include <MCUFRIEND_kbv.h>
+#include <math.h>
 
 extern MCUFRIEND_kbv tft;
 
@@ -78,40 +79,61 @@ void LaborLogAmplifier::init() {
 	tft.print("ms");
 }
 
+uint16_t LaborLogAmplifier::DisplayColorbyDB(double ValueDB) {
+	uint16_t color;
+
+	if(ValueDB < -4)
+		color = BLUE1;
+	else if (ValueDB < 2)
+		color = YELLOW;
+	else if (ValueDB < 8)
+		color = ORANGE;
+	else
+		color = RED;
+
+	return color;
+}
+
 void LaborLogAmplifier::DisplayDBBar(double ValueDB){
-	static double oldValue = 0;
 	int16_t currentcolor;
 
-	if (ValueDB == oldValue)
-		return;
+	for(int i = 0; i<47; i++) {
+		uint16_t color=BLACK;
+		double CurrentBar_dbValue = i-33;
 
-	for(int z= (int) (ValueDB+33); z<47; z++){
-		tft.fillRect(10+10*z, 120, 7, 30, BLACK);
-	}
-    tft.fillRect(10, 120, 7, 30, BLUE1);   //ersten Balken blau anzeigen
-	for(int z=1; z<(ValueDB+35); z++){
-		currentcolor = BLUE1;
-		if(z > 28 && z < 35)currentcolor = YELLOW;
-		else if(z > 34 && z < 41)currentcolor = ORANGE;
-		else if(z > 40 && z < 47)currentcolor = RED;
-		if(z < 47){
-			tft.fillRect(10+10*z, 120, 7, 30, currentcolor);
+		if (i==0)
+			color = BLUE1;
+		else if (CurrentBar_dbValue <= ValueDB){
+			color = this->DisplayColorbyDB(CurrentBar_dbValue);
 		}
+		tft.fillRect(10+10*i, 120, 7, 30, color);
 	}
-	oldValue = ValueDB;
 }
 
 LaborLogAmplifier::loopResult_t LaborLogAmplifier::loop(LaborLogAmplifier::userinput_t userinput) {
 
 	static int sampleCount = 0;
-	static double meanSampleDBValue = 0;
+	double dbValue = 0;
+	static double Energy = 0;
 
 	if(ADCReady_BNC1) {
 		ADCReady_BNC1 = false;
-		meanSampleDBValue = ((ADCValue_BNC1-744)*20/185.69+2.21);
+		dbValue = ((ADCValue_BNC1-744)*20/185.69+2.21);
+		Energy += pow(10, (dbValue/10));
 		sampleCount += 1;
 
-		DisplayDBBar(meanSampleDBValue);
+
+		if(sampleCount*20/44.1 > this->timems)
+		{
+			double MeanPower = Energy/sampleCount;
+			double MeanDb = log10(MeanPower)*10;
+			DisplayDBBar(MeanDb);
+			sampleCount = 0;
+			Energy = 0;
+			SerialUSB.print(dbValue);
+			SerialUSB.print(", ");
+			SerialUSB.println(MeanDb);
+		}
 	}
 
 	return userinput.Rotary1Switch ? LR_EXIT:LR_STAY;

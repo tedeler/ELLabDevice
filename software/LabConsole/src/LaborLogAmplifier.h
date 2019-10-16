@@ -16,6 +16,7 @@ public:
 	LaborLogAmplifier();
 	virtual ~LaborLogAmplifier();
 
+	uint16_t DisplayColorbyDB(double ValueDB);
 	virtual loopResult_t loop(LaborLogAmplifier::userinput_t userinput);
 	virtual void init();
 
